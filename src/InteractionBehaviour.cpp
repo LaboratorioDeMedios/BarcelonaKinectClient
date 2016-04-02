@@ -18,6 +18,10 @@
 #include <cmath>
 #include <limits>
 
+#define radio(vect) (vect.x)
+#define theta(vect) (vect.y)
+#define phi(vect)   (vect.z)
+
 
 double generateGaussianNoise(double mu, double sigma)
 {
@@ -45,7 +49,7 @@ double generateGaussianNoise(double mu, double sigma)
 }
 
 double gaussian(){
-    return generateGaussianNoise(0, 30);
+    return generateGaussianNoise(0, 6);
 }
 
 
@@ -138,13 +142,13 @@ InteractionBehaviour::~InteractionBehaviour(){
 }
 
 void InteractionBehaviour::customSetup (map<int,Pixel*>* pixels, vector<Pixel*>* pixelsFast) {
-    mouseX = 0;
-    mouseY = 0;
 
     sphere.setRadius(70);
     sphere.setPosition(0,0,0);
 
-    movingPoint.setRadius(5);
+    movingSphere.setRadius(2);
+    movingPointOrigin = ofVec3f(0,0,0);
+    movingPoint = ofVec3f(0,0,0);
 
     moveX = moveY = 0;
     drawMovingPoint = true;
@@ -155,66 +159,35 @@ void InteractionBehaviour::update(ofCamera* cam) {
     static uint64_t last = ofGetElapsedTimeMillis();
     uint64_t now = ofGetElapsedTimeMillis();
 
-    Envelope::ptr_t env;
-    BasicMessage::ptr_t message;
-
     for(int i = 0; i < pixelsFast->size(); i++){
         Pixel* px = (*pixelsFast)[i];
-        px->fadeToBlack(0.94);
+        px->fadeToBlack(0.9);
     }
 
-    moveX += gaussian();
-    moveY += gaussian();
-
-    double d = sqrt(pow(moveY - mouseY,2) + pow(moveX - mouseX,2));
-    double maxD = 200;
-    double dNorm = min(d,maxD)/maxD;
-
-    if (dNorm >= 0.8){
-        moveX = mouseX;
-        moveY = mouseY;
-    }
-
-    ofVec3f screenToWorld = cam->screenToWorld(ofVec3f(moveX,moveY,0.0));
-    ofVec3f src = cam->getPosition();
-    ofVec3f direction = screenToWorld - cam->getPosition();
-
-    // cout << "direct " << direction << endl;
-
-    ofVec3f* touchPosition = intersect(src,direction);
-    if (touchPosition){
-        movingPoint.setPosition(*touchPosition);
-        cout << *touchPosition << endl;
+    ofVec3f* touchPosition = getCurrentSpherePoint(cam);
+    
+    if ((touchPosition) && (touchPosition->distance(movingPointOrigin) > 0.1)){
         
- 
-        // if ((now - last) >= 30) {
-            // /* randomize */
-            // float x = (*touchPosition).x;
-            // float y = (*touchPosition).y;
-            // float z = (*touchPosition).z;
-
-            // (*touchPosition).x = x + gaussian();
-            // (*touchPosition).y = y + gaussian();
-            // (*touchPosition).z = z + gaussian();
-
-            // cout << "gaussian " << gaussian() << endl;
-
-            last = now;
-        // }
+        cout << "new touchPosition" << endl;
+        movingPointOrigin = *touchPosition;
+        movingPoint = movingPointOrigin;
     }
 
-    // ofVec3f touchPosition(mouseX, mouseY, 0); 
+
+    movingPoint = randomizeSpherePoint(movingPoint);
+    if (movingPoint.distance(movingPointOrigin) > 60){
+        movingPoint = movingPointOrigin;
+    }
+
+    movingSphere.setPosition(movingPoint);
+
+
 
     for(int i = 0; i < pixelsFast->size(); i++){
         Pixel* px = (*pixelsFast)[i];
         ofVec3f pxPosition = px->getPosition();
 
-        float dist = 800;
-        if (touchPosition) {
-            dist = touchPosition->distance(pxPosition);
-        }
-
-        // px->blendRGBA(0,0,0,255,1);
+        float dist = movingPoint.distance(pxPosition);
 
         if (dist < this->radius){
             float normalizedDist = 1 - dist/this->radius;
@@ -228,11 +201,10 @@ void InteractionBehaviour::update(ofCamera* cam) {
 
 void InteractionBehaviour::draw() {
     ofSetColor(0,255, 0, 128);
-    // sphere.draw();
 
     if (drawMovingPoint){
         ofSetColor(0,0, 255, 200);
-        movingPoint.draw();
+        movingSphere.draw();
     }
 }
 
@@ -263,4 +235,36 @@ void InteractionBehaviour::mouseMoved(int x, int y ){
 
 void InteractionBehaviour::exit() {
     SpecificBehaviour::exit();
+}
+
+ofVec3f InteractionBehaviour::toPolar(ofVec3f v){
+    ofVec3f result;
+    radio(result) = sphereRadius;
+    theta(result) = atan(v.y / v.x);
+    phi(result) = acos(v.z / sphereRadius);
+    return result;
+}
+
+ofVec3f InteractionBehaviour::toCartesian(ofVec3f v){
+    ofVec3f result;
+    result.x = sphereRadius * cos(theta(v)) * sin(phi(v)); 
+    result.y = sphereRadius * sin(theta(v)) * sin(phi(v)); 
+    result.z = sphereRadius * cos(phi(v));
+    return result;
+}
+
+ofVec3f InteractionBehaviour::randomizeSpherePoint(ofVec3f p){
+
+    ofVec3f polar = toPolar(p);
+    theta(polar) += gaussian();
+    phi(polar) += gaussian();
+
+    return toCartesian(polar);
+}
+
+ofVec3f* InteractionBehaviour::getCurrentSpherePoint(ofCamera* cam){
+    ofVec3f screenToWorld = cam->screenToWorld(ofVec3f(moveX,moveY,0.0));
+    ofVec3f src = cam->getPosition();
+    ofVec3f direction = screenToWorld - cam->getPosition();
+    return intersect(src,direction);
 }
