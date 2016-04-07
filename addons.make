@@ -1,4 +1,6 @@
+ofxOpenNI
 ofxNetwork
 ofxXmlSettings
 ofxAssimpModelLoader
 ofxTwBar
+

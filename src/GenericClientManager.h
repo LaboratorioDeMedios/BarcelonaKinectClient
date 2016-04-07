@@ -12,6 +12,7 @@
 #include "ofMain.h"
 #include "ofxNetwork.h"
 #include "ofxXmlSettings.h"
+#include "ofxOpenNI.h"
 #include "Pixel.h"
 #include "DTPixel.h"
 #include "DTFrame.h"

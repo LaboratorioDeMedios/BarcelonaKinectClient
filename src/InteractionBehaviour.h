@@ -9,11 +9,14 @@
 #ifndef __SenderoInteractionClient__InteractionBehaviour__
 #define __SenderoInteractionClient__InteractionBehaviour__
 
+#include "ofxOpenNI.h"
 #include <iostream>
 #include "SpecificBehaviour.h"
-#include <SimpleAmqpClient/SimpleAmqpClient.h>
+#include <vector>
 
-using namespace AmqpClient;
+#define MAX_HANDS (2)
+
+using namespace std;
 
 class InteractionBehaviour : public SpecificBehaviour {
 public:
@@ -28,9 +31,7 @@ private:
     void keyPressed(int key);
     void exit();
     ofVec3f* intersect(ofVec3f src, ofVec3f direction);
-    ofVec3f* getCurrentSpherePoint(ofCamera* cam);
-    
-    Channel::ptr_t connection;
+    vector<ofVec3f> getCurrentSpherePoint(ofCamera* cam);
     float radius;
 
     int mouseX, mouseY;
@@ -43,12 +44,17 @@ private:
     bool isSelected;
 
     ofSpherePrimitive sphere;
-    ofSpherePrimitive movingSphere;
+    ofSpherePrimitive movingSphere[MAX_HANDS];
 
     ofVec3f toPolar(ofVec3f xyz);
     ofVec3f toCartesian(ofVec3f rthetaphi);
     ofVec3f randomizeSpherePoint(ofVec3f p);
     const double sphereRadius = 70;
+
+    
+    void handEvent(ofxOpenNIHandEvent & event);
+    ofxOpenNI openNIDevice;
+    ofTrueTypeFont verdana;
 };
 
 #endif /* defined(__SenderoInteractionClient__InteractionBehaviour__) */
