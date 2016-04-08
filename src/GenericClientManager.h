@@ -9,10 +9,30 @@
 #ifndef GenericClient_GenericClientManager_h
 #define GenericClient_GenericClientManager_h
 
+#include <XnOpenNI.h>
+#include <XnCodecIDs.h>
+#include <XnCppWrapper.h>
+#include <XnLog.h>
+#include <XnTypes.h>
+
+#include "ofConstants.h"
+#include "ofPoint.h"
+#include "ofMesh.h"
+#include "ofPixels.h"
+#include "ofTexture.h"
+#include "ofGraphics.h"
+#include "ofMatrix3x3.h"
+#include "ofQuaternion.h"
+#include "of3dUtils.h"
+#include "ofLog.h"
+#include "ofThread.h"
+#include "ofEvents.h"
+#include "ofNode.h"
+#include "ofCamera.h"
+
 #include "ofMain.h"
 #include "ofxNetwork.h"
 #include "ofxXmlSettings.h"
-#include "ofxOpenNI.h"
 #include "Pixel.h"
 #include "DTPixel.h"
 #include "DTFrame.h"

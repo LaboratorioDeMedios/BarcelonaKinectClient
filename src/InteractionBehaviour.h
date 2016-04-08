@@ -9,7 +9,7 @@
 #ifndef __SenderoInteractionClient__InteractionBehaviour__
 #define __SenderoInteractionClient__InteractionBehaviour__
 
-#include "ofxOpenNI.h"
+#include "OpenNI.h"
 #include <iostream>
 #include "SpecificBehaviour.h"
 #include <vector>
@@ -50,11 +50,6 @@ private:
     ofVec3f toCartesian(ofVec3f rthetaphi);
     ofVec3f randomizeSpherePoint(ofVec3f p);
     const double sphereRadius = 70;
-
-    
-    void handEvent(ofxOpenNIHandEvent & event);
-    ofxOpenNI openNIDevice;
-    ofTrueTypeFont verdana;
 };
 
 #endif /* defined(__SenderoInteractionClient__InteractionBehaviour__) */

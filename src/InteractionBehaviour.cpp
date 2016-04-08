@@ -24,6 +24,9 @@
 #define phi(vect)   (vect.z)
 
 
+
+
+
 double generateGaussianNoise(double mu, double sigma)
 {
     const double epsilon = std::numeric_limits<double>::min();
@@ -158,27 +161,7 @@ void InteractionBehaviour::customSetup (map<int,Pixel*>* pixels, vector<Pixel*>*
     isSelected = false;
 
 
-    // openNI
-    ofSetLogLevel(OF_LOG_VERBOSE);
-    openNIDevice.setup();
-    openNIDevice.addImageGenerator();
-    openNIDevice.addDepthGenerator();
-    openNIDevice.setRegister(true);
-    openNIDevice.setMirror(true);
-    // setup the hand generator
-    openNIDevice.addHandsGenerator();
-    // add all focus gestures (ie., wave, click, raise arm)
-    openNIDevice.addAllHandFocusGestures();
-    // or you can add them one at a time
-    //vector<string> gestureNames = openNIDevice.getAvailableGestures(); // you can use this to get a list of gestures
-                                                                         // prints to console and/or you can use the returned vector
-    //openNIDevice.addHandFocusGesture("Wave");
-    openNIDevice.setMaxNumHands(MAX_HANDS);
-
-    ofAddListener(openNIDevice.handEvent, this, &InteractionBehaviour::handEvent);
-
-    openNIDevice.start();
-    verdana.loadFont(ofToDataPath("verdana.ttf"), 24);
+    // init
 }
 
 void InteractionBehaviour::update(ofCamera* cam) {
@@ -237,11 +220,6 @@ void InteractionBehaviour::update(ofCamera* cam) {
 void InteractionBehaviour::draw() {
 
     ofSetColor(255, 255, 255);
-    glPushMatrix();
-    // draw debug (ie., image, depth, skeleton)
-    ofTranslate(0,0,-200);
-    openNIDevice.drawDebug();
-    glPopMatrix();
 
     ofSetColor(0,255, 0, 128);
 
@@ -252,10 +230,6 @@ void InteractionBehaviour::draw() {
     }
 }
 
-void InteractionBehaviour::handEvent(ofxOpenNIHandEvent & event){
-    // show hand event messages in the console
-    ofLogNotice() << getHandStatusAsString(event.handStatus) << "for hand" << event.id << "from device" << event.deviceID;
-}
 
 void InteractionBehaviour::keyPressed(int key){
     //sample -> paint every pixel with red at key pressed and blend with black at update
@@ -284,7 +258,6 @@ void InteractionBehaviour::mouseMoved(int x, int y ){
 
 void InteractionBehaviour::exit() {
     SpecificBehaviour::exit();
-    openNIDevice.stop();
 }
 
 
@@ -323,28 +296,28 @@ ofVec3f InteractionBehaviour::randomizeSpherePoint(ofVec3f p){
 // }
 
 vector<ofVec3f> InteractionBehaviour::getCurrentSpherePoint(ofCamera* cam){
-    int numHands = openNIDevice.getNumTrackedHands();
+    // int numHands = openNIDevice.getNumTrackedHands();
     vector<ofVec3f> positions;
     
-    // iterate through users
-    for (int i = 0; i < numHands; i++){
+    // // iterate through users
+    // for (int i = 0; i < numHands; i++){
         
-        // get a reference to this user
-        ofxOpenNIHand & hand = openNIDevice.getTrackedHand(i);
+    //     // get a reference to this user
+    //     ofxOpenNIHand & hand = openNIDevice.getTrackedHand(i);
         
-        // get hand position
-        ofPoint & handPosition = hand.getPosition();
-        // cout << "handPosition " << handPosition << endl;
-        // do something with the positions like:
-        ofPoint p = handPosition;
-        p.z = 80;
-        p.y = -p.y;
+    //     // get hand position
+    //     ofPoint & handPosition = hand.getPosition();
+    //     // cout << "handPosition " << handPosition << endl;
+    //     // do something with the positions like:
+    //     ofPoint p = handPosition;
+    //     p.z = 80;
+    //     p.y = -p.y;
 
-        // translate
-        p.x -= 240;
-        p.y += 320;
+    //     // translate
+    //     p.x -= 240;
+    //     p.y += 320;
 
-        positions.push_back(p);
-    }
+    //     positions.push_back(p);
+    // }
     return positions;
 }
