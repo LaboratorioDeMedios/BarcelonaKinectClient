@@ -162,9 +162,12 @@ void InteractionBehaviour::customSetup (map<int,Pixel*>* pixels, vector<Pixel*>*
 
 
     // init
+    OpenNI::start();
 }
 
 void InteractionBehaviour::update(ofCamera* cam) {
+
+    OpenNI::update();
 
     ofColor colors[2] = {ofColor(198,0,147),ofColor(255,255,0)};
 
@@ -217,6 +220,8 @@ void InteractionBehaviour::update(ofCamera* cam) {
 }
 
 void InteractionBehaviour::draw() {
+
+    OpenNI::draw();
 
     ofSetColor(255, 255, 255);
 

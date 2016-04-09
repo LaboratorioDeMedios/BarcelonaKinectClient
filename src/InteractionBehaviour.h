@@ -9,7 +9,7 @@
 #ifndef __SenderoInteractionClient__InteractionBehaviour__
 #define __SenderoInteractionClient__InteractionBehaviour__
 
-#include "OpenNI.h"
+#include "OpenNI/OpenNI.h"
 #include <iostream>
 #include "SpecificBehaviour.h"
 #include <vector>
