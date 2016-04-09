@@ -76,7 +76,7 @@
 # add a runtime path to search for those shared libraries, since they aren't 
 # incorporated directly into the final executable application binary.
 ################################################################################
-PROJECT_LDFLAGS = -lOpenNI -lusb-1.0 -Wl,-rpath=./libs
+PROJECT_LDFLAGS = -lOpenNI -lXnVNite -lusb-1.0 -Wl,-rpath=./libs
 
 ################################################################################
 # PROJECT DEFINES

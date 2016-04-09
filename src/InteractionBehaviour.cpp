@@ -167,7 +167,6 @@ void InteractionBehaviour::customSetup (map<int,Pixel*>* pixels, vector<Pixel*>*
 void InteractionBehaviour::update(ofCamera* cam) {
 
     ofColor colors[2] = {ofColor(198,0,147),ofColor(255,255,0)};
-    openNIDevice.update();
 
     static uint64_t last = ofGetElapsedTimeMillis();
     uint64_t now = ofGetElapsedTimeMillis();
