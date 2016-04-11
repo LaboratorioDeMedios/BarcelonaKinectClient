@@ -15,43 +15,6 @@
 #include <stdlib.h>     /* atof */
 #include <vector>
 
-#include <cstdlib>
-#include <cmath>
-#include <limits>
-
-#define radio(vect) (vect.x)
-#define theta(vect) (vect.y)
-#define phi(vect)   (vect.z)
-
-
-double generateGaussianNoise(double mu, double sigma)
-{
-    const double epsilon = std::numeric_limits<double>::min();
-    const double two_pi = 2.0*3.14159265358979323846;
-
-    static double z0, z1;
-    static bool generate;
-    generate = !generate;
-
-    if (!generate)
-       return z1 * sigma + mu;
-
-    double u1, u2;
-    do
-     {
-       u1 = rand() * (1.0 / RAND_MAX);
-       u2 = rand() * (1.0 / RAND_MAX);
-     }
-    while ( u1 <= epsilon );
-
-    z0 = sqrt(-2.0 * log(u1)) * cos(two_pi * u2);
-    z1 = sqrt(-2.0 * log(u1)) * sin(two_pi * u2);
-    return z0 * sigma + mu;
-}
-
-double gaussian(){
-    return generateGaussianNoise(0, 6);
-}
 
 
 std::vector<std::string> &split(const std::string &s, char delim, std::vector<std::string> &elems) {
@@ -71,7 +34,7 @@ std::vector<std::string> split(const std::string &s, char delim) {
 }
 
 InteractionBehaviour::InteractionBehaviour(){
-    radius = 100;
+    radius = 70;
 }
 
 ofVec3f* InteractionBehaviour::intersect(ofVec3f src, ofVec3f direction){   
@@ -122,7 +85,7 @@ ofVec3f* InteractionBehaviour::intersect(ofVec3f src, ofVec3f direction){
         double t2 = ((-b + sqrt(discriminante))/2);
         //Caso de interseccion doble, devuelvo la mas cercana al rayo
         
-        if (t1 > 0){ //&& (t1 <= Constantes::UMBRAL_DOUBLE) && (objRef == this)){
+        if (t1 > 0){
             t = t1;
         } else if (t2 > 0){
             t = t2;
@@ -144,11 +107,16 @@ InteractionBehaviour::~InteractionBehaviour(){
 
 void InteractionBehaviour::customSetup (map<int,Pixel*>* pixels, vector<Pixel*>* pixelsFast) {
 
-    sphere.setRadius(70);
-    sphere.setPosition(0,0,0);
+    // sphere.setRadius(70);
+    // sphere.setPosition(0,0,0);
+    sphereRadius = 70;
+
+    interactionListener.polarPosition = ofVec3f(sphereRadius,0,0);
+    interactionListener.color = ofColor(255,0,255,0);
+    interactionListener.targetAlpha = 30;
 
     for(int i = 0; i < MAX_USERS; i++)
-        movingSphere[i].setRadius(30);
+        movingSphere[i].setRadius(15);
     
     movingPointOrigin = ofVec3f(0,0,0);
     movingPoint = ofVec3f(0,0,0);
@@ -158,11 +126,45 @@ void InteractionBehaviour::customSetup (map<int,Pixel*>* pixels, vector<Pixel*>*
     isSelected = false;
 
     kinectSessionManager.start(MAX_USERS);
+
+    interactionState = IDLE;
 }
 
 void InteractionBehaviour::update(ofCamera* cam) {
 
+    uint64_t t = ofGetElapsedTimeMillis();
+
     kinectSessionManager.update();
+
+    int diff = abs(interactionListener.targetAlpha - interactionListener.color.a);
+    if (interactionListener.targetAlpha > interactionListener.color.a)
+        interactionListener.color.a += min(10,diff);
+    if (interactionListener.targetAlpha < interactionListener.color.a)
+        interactionListener.color.a -= min(10,diff);
+
+    // cout << "alpha " << (int)interactionListener.color.a << endl;
+    switch (interactionState){
+    case IDLE:
+        if (kinectSessionManager.getNumberOfUsers() > 0){
+            interactionState = USER_PRESENT;
+            interactionListener.targetAlpha = 255;
+            cout << "USER_PRESENT" << endl;
+        }
+        break;
+    case USER_PRESENT:
+        if (kinectSessionManager.getNumberOfUsers() == 0){
+            interactionState = IDLE;
+            interactionListener.targetAlpha = 30;
+            cout << "IDLE" << endl;
+        }
+        break;
+    }
+
+    interactionListener.update(t);
+
+    // cout << "interactionListener.position " << interactionListener.position << endl;
+    // cout << "toCartesian(interactionListener.position) " << toCartesian(interactionListener.position) << endl;
+
 
     ofColor colors[2] = {ofColor(198,0,147),ofColor(255,255,0)};
 
@@ -171,10 +173,10 @@ void InteractionBehaviour::update(ofCamera* cam) {
 
     for(int i = 0; i < pixelsFast->size(); i++){
         Pixel* px = (*pixelsFast)[i];
-        px->fadeToBlack(0.9);
+        px->fadeToBlack(0.98);
     }
 
-    vector<ofVec3f> touchPositions = getCurrentSpherePoint(cam);
+    // vector<ofVec3f> touchPositions = getCurrentSpherePoint(cam);
     
     // if ((touchPosition) /*&& (touchPosition->distance(movingPointOrigin) > 0.0001)*/){
         
@@ -195,37 +197,60 @@ void InteractionBehaviour::update(ofCamera* cam) {
         Pixel* px = (*pixelsFast)[i];
         ofVec3f pxPosition = px->getPosition();
 
-        for(int h = 0; h < touchPositions.size(); h++){
-
-            movingSphere[h].setPosition(touchPositions[h]);
-
-            float dist = touchPositions[h].distance(pxPosition);
-
-            if (dist < this->radius){
-                float normalizedDist = 1 - dist/this->radius;
-                ofColor color = colors[h];
-                px->blendRGBA(color.r,color.g,color.b,255,ofLerp(0.1,1,normalizedDist));
-                // if (isSelected)
-                //     px->blendRGBA(198,0,147,255,ofLerp(0.1,1,normalizedDist));
-                // else
-                //     px->blendRGBA(115,132,230,255,ofLerp(0.1,1,normalizedDist));
-            }
+        // draw distance to listener point
+        float dist = toCartesian(interactionListener.polarPosition).distance(pxPosition);
+        if (dist < interactionListener.lightingRadius){
+            float normalizedDist = 1 - dist/interactionListener.lightingRadius;
+            ofColor color = interactionListener.color;
+            px->blendRGBA(color.r,color.g,color.b,1,ofLerp(0.1,1,normalizedDist)*(color.a/255.f));
         }
+
+        // draw hand interactions
+
+        // for(int h = 0; h < touchPositions.size(); h++){
+        //     movingSphere[h].setPosition(touchPositions[h]);
+        //     float dist = touchPositions[h].distance(pxPosition);
+        //     if (dist < this->radius){
+        //         float normalizedDist = 1 - dist/this->radius;
+        //         ofColor color = colors[h];
+        //         px->blendRGBA(color.r,color.g,color.b,1,ofLerp(0.1,1,normalizedDist));
+        //     }
+        // }
     }
 }
 
 void InteractionBehaviour::draw() {
 
     ofSetColor(255, 255, 255);
+
+    for(int i = 0; i < kinectSessionManager.getNumberOfUsers(); i++){
+        SenderoKinectUser& user = kinectSessionManager.getUser(i);
+        ofVec3f rightHand = user.getRightHandScenePosition();
+
+        ofVec3f ray = ofVec3f(0,0,0) - rightHand;
+        ofVec3f* inter = intersect(rightHand,ray);
+        if (inter){
+            ofSpherePrimitive sphere;
+            sphere.setRadius(15);
+            sphere.setPosition(*inter);
+            delete inter;
+        }
+    }
+
+    ofSetColor(255, 255, 255);
     glPushMatrix();
     // draw debug (ie., image, depth, skeleton)
     // ofTranslate(0,0,-200);
-    kinectSessionManager.drawDebug();
+    // kinectSessionManager.drawDebug();
     glPopMatrix();
 
-    for(int i = 0; i < MAX_USERS; i++){
-        movingSphere[i].draw();
-    }
+    // for(int i = 0; i < MAX_USERS; i++){
+    //     movingSphere[i].draw();
+    // }
+
+    // ofSetColor(interactionListener.color);
+    // interactionListener.sphere.setPosition(toCartesian(interactionListener.position));
+    // interactionListener.sphere.draw();
 }
 
 void InteractionBehaviour::keyPressed(int key){
@@ -263,78 +288,49 @@ void InteractionBehaviour::exit() {
 
 ofVec3f InteractionBehaviour::toPolar(ofVec3f v){
     ofVec3f result;
-    radio(result) = sphereRadius;
-    theta(result) = atan(v.y / v.x);
-    phi(result) = acos(v.z / sphereRadius);
+    radio(result) = sqrt(pow(v.x,2) + pow(v.y,2) + pow(v.z,2));
+    theta(result) = (abs(v.x) > 0.00000000001) ? atan(v.y / v.x) : 0;
+    phi(result) = acos(v.z / radio(result));
     return result;
 }
 
 ofVec3f InteractionBehaviour::toCartesian(ofVec3f v){
     ofVec3f result;
-    result.x = sphereRadius * cos(theta(v)) * sin(phi(v)); 
-    result.y = sphereRadius * sin(theta(v)) * sin(phi(v)); 
-    result.z = sphereRadius * cos(phi(v));
+    result.x = radio(v) * sin(phi(v)) * cos(theta(v)); 
+    result.y = radio(v) * sin(phi(v)) * sin(theta(v)); 
+    result.z = radio(v) * cos(phi(v));
     return result;
 }
 
 ofVec3f InteractionBehaviour::randomizeSpherePoint(ofVec3f p){
 
     ofVec3f polar = toPolar(p);
-    theta(polar) += gaussian();
-    phi(polar) += gaussian();
+    // theta(polar) += gaussian();
+    // phi(polar) += gaussian();
 
     return toCartesian(polar);
 }
-
-// ofVec3f* InteractionBehaviour::getCurrentSpherePoint(ofCamera* cam){
-//     ofVec3f screenToWorld = cam->screenToWorld(ofVec3f(moveX,moveY,0.0));
-//     ofVec3f src = cam->getPosition();
-//     ofVec3f direction = screenToWorld - cam->getPosition();
-//     return intersect(src,direction);
-// }
 
 vector<ofVec3f> InteractionBehaviour::getCurrentSpherePoint(ofCamera* cam){
 
     vector<ofVec3f> result;
 
-    // // get number of current users
-    // int numUsers = kinectSessionManager.getNumberOfUsers();
-    // // iterate through users
-    // for (int i = 0; i < numUsers; i++){
+    // get number of current users
+    int numUsers = kinectSessionManager.getNumberOfUsers();
+    // iterate through users
+    for (int i = 0; i < numUsers; i++){
         
-    //     // get a reference to this user
-    //     SenderoKinectUser & user = kinectSessionManager.getUser(i);
-    //     ofVec3f position = user.getScenePosition();
-    //     result.push_back(position);
-    // }
+        // get a reference to this user
+        SenderoKinectUser & user = kinectSessionManager.getUser(i);
+        ofVec3f position = user.getScenePosition();
+
+        ofVec3f ray = ofVec3f(0,0,0) - position;
+        ofVec3f* inter = intersect(position, ray);
+
+        if (inter){
+            result.push_back(*inter);
+            delete inter;
+        }
+    }
     return result;
-        
-    
-
-
-
-    // int numHands = kinectSessionManager.getNumTrackedHands();
-    // vector<ofVec3f> positions;
-    
-    // // iterate through users
-    // for (int i = 0; i < numHands; i++){
-        
-    //     // get a reference to this user
-    //     ofxOpenNIHand & hand = openNIDevice.getTrackedHand(i);
-        
-    //     // get hand position
-    //     ofPoint & handPosition = hand.getPosition();
-    //     // cout << "handPosition " << handPosition << endl;
-    //     // do something with the positions like:
-    //     ofPoint p = handPosition;
-    //     p.z = 80;
-    //     p.y = -p.y;
-
-    //     // translate
-    //     p.x -= 240;
-    //     p.y += 320;
-
-    //     positions.push_back(p);
-    // }
-    // return positions;
 }

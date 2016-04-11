@@ -16,6 +16,7 @@ void KinectSessionManager::start(int maxUsers){
     openNIDevice.setMirror(true);
     openNIDevice.addUserGenerator();
     openNIDevice.setMaxNumUsers(maxUsers);
+    openNIDevice.setUserSmoothing(0.1);
     openNIDevice.start();
 
     
@@ -34,6 +35,8 @@ void KinectSessionManager::start(int maxUsers){
 	user.setUsePointCloud(true);
 	user.setPointCloudDrawSize(2);
 	user.setPointCloudResolution(2);
+    // user.setForceResetTimeout(300);
+    // user.setConfidenceThreshold(0.1);
 	openNIDevice.setBaseUserClass(user);
 }
 
@@ -44,12 +47,12 @@ void KinectSessionManager::update(){
 void KinectSessionManager::drawDebug(){
 	ofSetColor(255, 255, 255);
     ofPushMatrix();
-    openNIDevice.drawDebug();
+    // openNIDevice.drawDebug();
     ofPopMatrix();
     // draw users
     ofPushMatrix();
     // use a blend mode so we can see 'through' the mask(s)
-    ofEnableBlendMode(OF_BLENDMODE_ALPHA);
+    // ofEnableBlendMode(OF_BLENDMODE_ALPHA);
     // get number of current users
     int numUsers = openNIDevice.getNumTrackedUsers();
     // iterate through users
@@ -57,20 +60,20 @@ void KinectSessionManager::drawDebug(){
         // get a reference to this user
         ofxOpenNIUser & user = openNIDevice.getTrackedUser(i);
         // draw the mask texture for this user
-        user.drawMask();
+        // user.drawMask();
 
         ofMesh& mesh = user.getPointCloud();
         vector<ofVec3f> vertices = mesh.getVertices();
         ofSpherePrimitive s;
         s.setRadius(2);
+        ofSetColor(255, 0, 0);
         for(int v = 0; v < vertices.size(); v++){
-        	cout << vertices[v] << endl;
         	ofVec3f scenePoint = SceneCalibration::kinectToSceneCoordinates(vertices[v]);
         	s.setPosition(scenePoint);
         	s.draw();
         }
     }
-    ofDisableBlendMode();
+    // ofDisableBlendMode();
     ofPopMatrix();
 }
 
@@ -79,7 +82,6 @@ int KinectSessionManager::getNumberOfUsers(){
 }
 
 SenderoKinectUser& KinectSessionManager::getUser(int index){
-	cout << "before casting!!" << endl;
 	return (SenderoKinectUser&) openNIDevice.getTrackedUser(index);
 }
 

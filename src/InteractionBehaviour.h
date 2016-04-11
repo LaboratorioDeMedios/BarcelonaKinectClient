@@ -14,8 +14,17 @@
 #include <iostream>
 #include "SpecificBehaviour.h"
 #include <vector>
+#include "CosmicBehaviour.h"
 
 #define MAX_USERS (1)
+
+enum InteractionState {
+    IDLE,
+    USER_PRESENT,
+    HAND_INTERACTION
+};
+
+
 
 using namespace std;
 
@@ -44,16 +53,19 @@ private:
     bool drawMovingPoint;
     bool isSelected;
 
-    ofSpherePrimitive sphere;
+    CosmicBehaviour interactionListener;
+
+
     ofSpherePrimitive movingSphere[MAX_USERS];
 
     ofVec3f toPolar(ofVec3f xyz);
     ofVec3f toCartesian(ofVec3f rthetaphi);
     ofVec3f randomizeSpherePoint(ofVec3f p);
-    const double sphereRadius = 70;
+    float sphereRadius = 70;
 
-    
+    InteractionState interactionState;
     KinectSessionManager kinectSessionManager;
 };
+
 
 #endif /* defined(__SenderoInteractionClient__InteractionBehaviour__) */
