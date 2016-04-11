@@ -147,7 +147,7 @@ void InteractionBehaviour::customSetup (map<int,Pixel*>* pixels, vector<Pixel*>*
     sphere.setRadius(70);
     sphere.setPosition(0,0,0);
 
-    for(int i = 0; i < MAX_HANDS; i++)
+    for(int i = 0; i < MAX_USERS; i++)
         movingSphere[i].setRadius(30);
     
     movingPointOrigin = ofVec3f(0,0,0);
@@ -157,34 +157,14 @@ void InteractionBehaviour::customSetup (map<int,Pixel*>* pixels, vector<Pixel*>*
     drawMovingPoint = true;
     isSelected = false;
 
-
-    // openNI
-    ofSetLogLevel(OF_LOG_VERBOSE);
-    openNIDevice.setup();
-    openNIDevice.addImageGenerator();
-    openNIDevice.addDepthGenerator();
-    openNIDevice.setRegister(true);
-    openNIDevice.setMirror(true);
-    // setup the hand generator
-    openNIDevice.addHandsGenerator();
-    // add all focus gestures (ie., wave, click, raise arm)
-    openNIDevice.addAllHandFocusGestures();
-    // or you can add them one at a time
-    //vector<string> gestureNames = openNIDevice.getAvailableGestures(); // you can use this to get a list of gestures
-                                                                         // prints to console and/or you can use the returned vector
-    //openNIDevice.addHandFocusGesture("Wave");
-    openNIDevice.setMaxNumHands(MAX_HANDS);
-
-    ofAddListener(openNIDevice.handEvent, this, &InteractionBehaviour::handEvent);
-
-    openNIDevice.start();
-    verdana.loadFont(ofToDataPath("verdana.ttf"), 24);
+    kinectSessionManager.start(MAX_USERS);
 }
 
 void InteractionBehaviour::update(ofCamera* cam) {
 
+    kinectSessionManager.update();
+
     ofColor colors[2] = {ofColor(198,0,147),ofColor(255,255,0)};
-    openNIDevice.update();
 
     static uint64_t last = ofGetElapsedTimeMillis();
     uint64_t now = ofGetElapsedTimeMillis();
@@ -239,22 +219,13 @@ void InteractionBehaviour::draw() {
     ofSetColor(255, 255, 255);
     glPushMatrix();
     // draw debug (ie., image, depth, skeleton)
-    ofTranslate(0,0,-200);
-    openNIDevice.drawDebug();
+    // ofTranslate(0,0,-200);
+    kinectSessionManager.drawDebug();
     glPopMatrix();
 
-    ofSetColor(0,255, 0, 128);
-
-    if (drawMovingPoint){
-        ofSetColor(0,0, 255, 200);
-        for(int i = 0; i < MAX_HANDS; i++)
-            movingSphere[i].draw();
+    for(int i = 0; i < MAX_USERS; i++){
+        movingSphere[i].draw();
     }
-}
-
-void InteractionBehaviour::handEvent(ofxOpenNIHandEvent & event){
-    // show hand event messages in the console
-    ofLogNotice() << getHandStatusAsString(event.handStatus) << "for hand" << event.id << "from device" << event.deviceID;
 }
 
 void InteractionBehaviour::keyPressed(int key){
@@ -284,7 +255,7 @@ void InteractionBehaviour::mouseMoved(int x, int y ){
 
 void InteractionBehaviour::exit() {
     SpecificBehaviour::exit();
-    openNIDevice.stop();
+    kinectSessionManager.stop();
 }
 
 
@@ -323,28 +294,47 @@ ofVec3f InteractionBehaviour::randomizeSpherePoint(ofVec3f p){
 // }
 
 vector<ofVec3f> InteractionBehaviour::getCurrentSpherePoint(ofCamera* cam){
-    int numHands = openNIDevice.getNumTrackedHands();
-    vector<ofVec3f> positions;
+
+    vector<ofVec3f> result;
+
+    // // get number of current users
+    // int numUsers = kinectSessionManager.getNumberOfUsers();
+    // // iterate through users
+    // for (int i = 0; i < numUsers; i++){
+        
+    //     // get a reference to this user
+    //     SenderoKinectUser & user = kinectSessionManager.getUser(i);
+    //     ofVec3f position = user.getScenePosition();
+    //     result.push_back(position);
+    // }
+    return result;
+        
     
-    // iterate through users
-    for (int i = 0; i < numHands; i++){
-        
-        // get a reference to this user
-        ofxOpenNIHand & hand = openNIDevice.getTrackedHand(i);
-        
-        // get hand position
-        ofPoint & handPosition = hand.getPosition();
-        // cout << "handPosition " << handPosition << endl;
-        // do something with the positions like:
-        ofPoint p = handPosition;
-        p.z = 80;
-        p.y = -p.y;
 
-        // translate
-        p.x -= 240;
-        p.y += 320;
 
-        positions.push_back(p);
-    }
-    return positions;
+
+    // int numHands = kinectSessionManager.getNumTrackedHands();
+    // vector<ofVec3f> positions;
+    
+    // // iterate through users
+    // for (int i = 0; i < numHands; i++){
+        
+    //     // get a reference to this user
+    //     ofxOpenNIHand & hand = openNIDevice.getTrackedHand(i);
+        
+    //     // get hand position
+    //     ofPoint & handPosition = hand.getPosition();
+    //     // cout << "handPosition " << handPosition << endl;
+    //     // do something with the positions like:
+    //     ofPoint p = handPosition;
+    //     p.z = 80;
+    //     p.y = -p.y;
+
+    //     // translate
+    //     p.x -= 240;
+    //     p.y += 320;
+
+    //     positions.push_back(p);
+    // }
+    // return positions;
 }

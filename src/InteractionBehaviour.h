@@ -9,12 +9,13 @@
 #ifndef __SenderoInteractionClient__InteractionBehaviour__
 #define __SenderoInteractionClient__InteractionBehaviour__
 
-#include "ofxOpenNI.h"
+#include "KinectSessionManager.h"
+#include "SenderoKinectUser.h"
 #include <iostream>
 #include "SpecificBehaviour.h"
 #include <vector>
 
-#define MAX_HANDS (2)
+#define MAX_USERS (1)
 
 using namespace std;
 
@@ -44,7 +45,7 @@ private:
     bool isSelected;
 
     ofSpherePrimitive sphere;
-    ofSpherePrimitive movingSphere[MAX_HANDS];
+    ofSpherePrimitive movingSphere[MAX_USERS];
 
     ofVec3f toPolar(ofVec3f xyz);
     ofVec3f toCartesian(ofVec3f rthetaphi);
@@ -52,9 +53,7 @@ private:
     const double sphereRadius = 70;
 
     
-    void handEvent(ofxOpenNIHandEvent & event);
-    ofxOpenNI openNIDevice;
-    ofTrueTypeFont verdana;
+    KinectSessionManager kinectSessionManager;
 };
 
 #endif /* defined(__SenderoInteractionClient__InteractionBehaviour__) */

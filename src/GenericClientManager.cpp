@@ -57,7 +57,7 @@ void GenericClientManager::setup(){
     specific->setup(this->pixels, this->pixelsFast);
 
 	float t;
-    // cam.setDistance(400);
+    // cam.setDistance(2000);
 }
 
 
