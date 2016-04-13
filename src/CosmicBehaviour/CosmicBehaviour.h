@@ -12,8 +12,8 @@
 
 #define mo phi
 
-#define VELOCITY (0.05)
-#define TIME_IN_CENTER (3000)
+#define VELOCITY (0.1)
+#define TIME_IN_CENTER (500)
 
 class CosmicBehaviour {
 public:
@@ -24,7 +24,10 @@ public:
 
     CosmicBehaviour(){
     	lightingRadius = 60;
+    	stop = false;
     }
+
+    bool stop;
 
     void update(uint64_t t){
     	static uint64_t last = t;
@@ -32,12 +35,14 @@ public:
 
     	uint64_t elapsedT = t - last;
 
-    	if ((mo(polarPosition) <= 0.0000001) && (centerTime > 0)){ 
+    	if (stop && (centerTime > 0)){ 
     		double remain = centerTime - elapsedT;
     		centerTime = remain > 0 ? remain : 0;
+    		last = t;
     		return;
     	} else {
     		centerTime = TIME_IN_CENTER;
+    		stop = false;
     	}
     	
     	float d = 0;//abs(mo(polarPosition)-PI)/PI;
@@ -45,13 +50,14 @@ public:
 		mo(polarPosition) += (VELOCITY * elapsedT / 30) * (1.2 - d);
 		if (mo(polarPosition) >= 2*PI){
 		    mo(polarPosition) -= 2*PI; /* this is fucking relevant */
+		    stop = true;
 		}
 		cout << mo(polarPosition) << endl;
 
 		// theta(polarPosition) = gaussian();
 
 		lightingRadius += 5.0/30;
-		if (lightingRadius >= 100){
+		if (lightingRadius >= 80){
 			lightingRadius = 30;
 		}
 

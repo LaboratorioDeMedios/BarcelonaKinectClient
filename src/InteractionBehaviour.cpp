@@ -173,7 +173,7 @@ void InteractionBehaviour::update(ofCamera* cam) {
 
     for(int i = 0; i < pixelsFast->size(); i++){
         Pixel* px = (*pixelsFast)[i];
-        px->fadeToBlack(0.98);
+        px->fadeToBlack(0.99);
     }
 
     // vector<ofVec3f> touchPositions = getCurrentSpherePoint(cam);
