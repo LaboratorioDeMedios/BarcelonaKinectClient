@@ -20,4 +20,5 @@ private:
 	ofxOpenNI openNIDevice;
     ofTrueTypeFont verdana;
     void userEvent(ofxOpenNIUserEvent & event);
+    void gestureEvent(ofxOpenNIGestureEvent & event);
 };

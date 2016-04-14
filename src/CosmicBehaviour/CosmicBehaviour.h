@@ -45,14 +45,12 @@ public:
     		stop = false;
     	}
     	
-    	float d = 0;//abs(mo(polarPosition)-PI)/PI;
-
+    	float d = abs(mo(polarPosition)-PI)/PI;
 		mo(polarPosition) += (VELOCITY * elapsedT / 30) * (1.2 - d);
 		if (mo(polarPosition) >= 2*PI){
 		    mo(polarPosition) -= 2*PI; /* this is fucking relevant */
 		    stop = true;
 		}
-		cout << mo(polarPosition) << endl;
 
 		// theta(polarPosition) = gaussian();
 

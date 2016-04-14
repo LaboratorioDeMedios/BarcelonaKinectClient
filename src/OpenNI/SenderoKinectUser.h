@@ -5,9 +5,87 @@
 #include "SceneCalibration.h"
 
 #define USER_POSITION_JOINT	(JOINT_TORSO)
+#define RAISE_HAND_CONFIDENCE (2)
+#define RAISE_HAND_GESTURE_TIME (600)
+
+enum SenderoKinectUserState {
+	STANDING,
+	RAISED_HAND,
+};
 
 class SenderoKinectUser: public ofxOpenNIUser {
 public:
+	SenderoKinectUserState state;
+
+	SenderoKinectUser(): ofxOpenNIUser() {
+		state = STANDING;
+	}
+
+	SenderoKinectUser(const SenderoKinectUser& other): ofxOpenNIUser(other) {
+		this->state = other.state;
+	}
+
+	void updateState(uint64_t t){
+		static ofVec3f lastHand = getRightHandScenePosition();
+		static uint64_t lastTime = t;
+		static bool isRaising = false;
+		static int confidence = 0;
+		static int gestureTime = RAISE_HAND_GESTURE_TIME;
+
+		switch (state){
+		case STANDING: 
+			{
+				uint64_t elapsedTime = t - lastTime;
+
+				ofVec3f currentHand = getRightHandScenePosition();
+
+				bool wasRaising = isRaising;
+
+				// cout << currentHand.y - lastHand.y << endl;
+				bool _isRaising = currentHand.y - lastHand.y > 0;
+
+				if (isRaising){
+					if (!_isRaising)
+						confidence++;
+					
+					if (confidence > RAISE_HAND_CONFIDENCE){
+						isRaising = false;
+						confidence = 0;
+					}
+				}else{
+					if (_isRaising)
+						confidence++;
+
+					if (confidence > RAISE_HAND_CONFIDENCE){
+						isRaising = true;
+						confidence = 0;
+					}
+				}
+
+				if (wasRaising && isRaising){
+					gestureTime -= elapsedTime;
+				} else {
+					gestureTime = RAISE_HAND_GESTURE_TIME;
+				}
+
+				if (gestureTime <= 0){
+					// recognized!
+					cout << "isRaising " << isRaising << endl;
+					gestureTime = RAISE_HAND_GESTURE_TIME;
+					isRaising = false;
+					state = RAISED_HAND;
+				}
+
+				lastHand = currentHand;
+				lastTime = t;
+			}
+			break;
+
+		case RAISED_HAND:
+			break;
+		}
+	}
+
 	ofVec3f getScenePosition(){
 		if (getNumJoints() <= USER_POSITION_JOINT){
 			return ofVec3f(0,0,0);

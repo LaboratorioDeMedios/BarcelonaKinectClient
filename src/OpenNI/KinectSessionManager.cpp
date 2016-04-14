@@ -8,6 +8,7 @@ void KinectSessionManager::start(int maxUsers){
 	ofSetLogLevel(OF_LOG_VERBOSE);
 
 	ofAddListener(openNIDevice.userEvent, this, &KinectSessionManager::userEvent);
+    ofAddListener(openNIDevice.gestureEvent, this, &KinectSessionManager::gestureEvent);
 
     openNIDevice.setup();
     openNIDevice.addImageGenerator();
@@ -15,6 +16,8 @@ void KinectSessionManager::start(int maxUsers){
     openNIDevice.setRegister(true);
     openNIDevice.setMirror(true);
     openNIDevice.addUserGenerator();
+    // openNIDevice.addGestureGenerator();
+    // openNIDevice.addAllGestures();
     openNIDevice.setMaxNumUsers(maxUsers);
     openNIDevice.setUserSmoothing(0.1);
     openNIDevice.start();
@@ -88,6 +91,11 @@ SenderoKinectUser& KinectSessionManager::getUser(int index){
 void KinectSessionManager::userEvent(ofxOpenNIUserEvent & event){
     // show user event messages in the console
     ofLogNotice() << getUserStatusAsString(event.userStatus) << " for user " << event.id << "from device" << event.deviceID;
+}
+
+void KinectSessionManager::gestureEvent(ofxOpenNIGestureEvent & event){
+    // show user event messages in the console
+    ofLogNotice() << getGestureStatusAsString(event.gestureStatus) << " for " << event.gestureName << endl;
 }
 
 void KinectSessionManager::stop(){

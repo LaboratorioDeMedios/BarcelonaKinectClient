@@ -225,6 +225,7 @@ void InteractionBehaviour::draw() {
 
     for(int i = 0; i < kinectSessionManager.getNumberOfUsers(); i++){
         SenderoKinectUser& user = kinectSessionManager.getUser(i);
+        user.updateState(ofGetElapsedTimeMillis());
         ofVec3f rightHand = user.getRightHandScenePosition();
 
         ofVec3f ray = ofVec3f(0,0,0) - rightHand;
@@ -233,6 +234,7 @@ void InteractionBehaviour::draw() {
             ofSpherePrimitive sphere;
             sphere.setRadius(15);
             sphere.setPosition(*inter);
+            sphere.draw();
             delete inter;
         }
     }
