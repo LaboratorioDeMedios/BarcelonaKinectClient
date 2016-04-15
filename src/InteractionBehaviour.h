@@ -15,13 +15,14 @@
 #include "SpecificBehaviour.h"
 #include <vector>
 #include "CosmicBehaviour.h"
+#include "of3dGraphics.h"
 
 #define MAX_USERS (1)
 
 enum InteractionState {
     IDLE,
     USER_PRESENT,
-    HAND_INTERACTION
+    HAND_INTERACTING
 };
 
 

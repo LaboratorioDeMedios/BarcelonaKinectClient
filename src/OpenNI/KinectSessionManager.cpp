@@ -11,7 +11,6 @@ void KinectSessionManager::start(int maxUsers){
     ofAddListener(openNIDevice.gestureEvent, this, &KinectSessionManager::gestureEvent);
 
     openNIDevice.setup();
-    openNIDevice.addImageGenerator();
     openNIDevice.addDepthGenerator();
     openNIDevice.setRegister(true);
     openNIDevice.setMirror(true);
@@ -20,27 +19,28 @@ void KinectSessionManager::start(int maxUsers){
     // openNIDevice.addAllGestures();
     openNIDevice.setMaxNumUsers(maxUsers);
     openNIDevice.setUserSmoothing(0.1);
-    openNIDevice.start();
-
     
     // set properties for all user masks and point clouds
     //openNIDevice.setUseMaskPixelsAllUsers(true); // if you just want pixels, use this set to true
     openNIDevice.setUseMaskTextureAllUsers(true); // this turns on mask pixels internally AND creates mask textures efficiently
     openNIDevice.setUsePointCloudsAllUsers(true);
     openNIDevice.setPointCloudDrawSizeAllUsers(2); // size of each 'point' in the point cloud
-    openNIDevice.setPointCloudResolutionAllUsers(2); // resolution of the mesh created for the point cloud eg., this will use every second depth pixel      
+    openNIDevice.setPointCloudResolutionAllUsers(50); // resolution of the mesh created for the point cloud eg., this will use every second depth pixel      
     verdana.loadFont(ofToDataPath("verdana.ttf"), 24);
     
 
     // you can alternatively create a 'base' user class
 	SenderoKinectUser user;
-	user.setUseMaskTexture(true);
+	// user.setUseMaskTexture(true);
 	user.setUsePointCloud(true);
 	user.setPointCloudDrawSize(2);
-	user.setPointCloudResolution(2);
+	user.setPointCloudResolution(50);
+    // user.setUseAutoCalibration(false);
     // user.setForceResetTimeout(300);
     // user.setConfidenceThreshold(0.1);
 	openNIDevice.setBaseUserClass(user);
+
+    openNIDevice.start();
 }
 
 void KinectSessionManager::update(){
@@ -49,9 +49,6 @@ void KinectSessionManager::update(){
 
 void KinectSessionManager::drawDebug(){
 	ofSetColor(255, 255, 255);
-    ofPushMatrix();
-    // openNIDevice.drawDebug();
-    ofPopMatrix();
     // draw users
     ofPushMatrix();
     // use a blend mode so we can see 'through' the mask(s)

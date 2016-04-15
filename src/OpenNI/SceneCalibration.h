@@ -6,6 +6,7 @@
 #define BARCELONA_WIDTH_MM (2000)
 #define TARGET_DISTANCE_Z (2000)
 
+#define HAND_RAY_PROJECTION_ORIGIN ofVec3f(0,0,-100000000000)
 #define CAMERA_HORIZONTAL_DEGREES (45)
 #define SCALE (140.f/BARCELONA_HEIGHT_MM)
 
@@ -16,7 +17,7 @@ public:
 	static ofVec3f kinectToSceneCoordinates(ofVec3f kinectPoint){
 		ofVec3f scenePoint = g_projectiveToWorld(kinectPoint);
 		scenePoint = scenePoint.getRotated(-CAMERA_HORIZONTAL_DEGREES, xAxis);
-		scenePoint.y = scenePoint.y - (BARCELONA_HEIGHT_MM/2);
+		scenePoint.y = scenePoint.y - (BARCELONA_HEIGHT_MM/2) - 500;
 		scenePoint.z = scenePoint.z - TARGET_DISTANCE_Z + BARCELONA_WIDTH_MM;//80; // hardcoded.
 		scenePoint *= SCALE;
 		return scenePoint;

@@ -34,7 +34,7 @@ std::vector<std::string> split(const std::string &s, char delim) {
 }
 
 InteractionBehaviour::InteractionBehaviour(){
-    radius = 70;
+    radius = 20;
 }
 
 ofVec3f* InteractionBehaviour::intersect(ofVec3f src, ofVec3f direction){   
@@ -158,6 +158,13 @@ void InteractionBehaviour::update(ofCamera* cam) {
             cout << "IDLE" << endl;
         }
         break;
+    case HAND_INTERACTING:
+        if (kinectSessionManager.getNumberOfUsers() == 0){
+            interactionState = IDLE;
+            interactionListener.targetAlpha = 30;
+            cout << "IDLE" << endl;
+        }
+        break;
     }
 
     interactionListener.update(t);
@@ -166,7 +173,7 @@ void InteractionBehaviour::update(ofCamera* cam) {
     // cout << "toCartesian(interactionListener.position) " << toCartesian(interactionListener.position) << endl;
 
 
-    ofColor colors[2] = {ofColor(198,0,147),ofColor(255,255,0)};
+    ofColor colors[2] = {ofColor(255,0,255),ofColor(255,255,0)};
 
     static uint64_t last = ofGetElapsedTimeMillis();
     uint64_t now = ofGetElapsedTimeMillis();
@@ -176,7 +183,7 @@ void InteractionBehaviour::update(ofCamera* cam) {
         px->fadeToBlack(0.99);
     }
 
-    // vector<ofVec3f> touchPositions = getCurrentSpherePoint(cam);
+    vector<ofVec3f> touchPositions = getCurrentSpherePoint(cam);
     
     // if ((touchPosition) /*&& (touchPosition->distance(movingPointOrigin) > 0.0001)*/){
         
@@ -207,15 +214,17 @@ void InteractionBehaviour::update(ofCamera* cam) {
 
         // draw hand interactions
 
-        // for(int h = 0; h < touchPositions.size(); h++){
-        //     movingSphere[h].setPosition(touchPositions[h]);
-        //     float dist = touchPositions[h].distance(pxPosition);
-        //     if (dist < this->radius){
-        //         float normalizedDist = 1 - dist/this->radius;
-        //         ofColor color = colors[h];
-        //         px->blendRGBA(color.r,color.g,color.b,1,ofLerp(0.1,1,normalizedDist));
-        //     }
-        // }
+        if (interactionState == HAND_INTERACTING){
+            for(int h = 0; h < touchPositions.size(); h++){
+                movingSphere[h].setPosition(touchPositions[h]);
+                float dist = touchPositions[h].distance(pxPosition);
+                if (dist < this->radius){
+                    float normalizedDist = 1 - dist/this->radius;
+                    ofColor color = colors[h];
+                    px->blendRGBA(color.r,color.g,color.b,1,ofLerp(0.1,1,normalizedDist));
+                }
+            }
+        }
     }
 }
 
@@ -225,14 +234,15 @@ void InteractionBehaviour::draw() {
 
     for(int i = 0; i < kinectSessionManager.getNumberOfUsers(); i++){
         SenderoKinectUser& user = kinectSessionManager.getUser(i);
-        user.updateState(ofGetElapsedTimeMillis());
         ofVec3f rightHand = user.getRightHandScenePosition();
+        ofVec3f ray = HAND_RAY_PROJECTION_ORIGIN - rightHand;
 
-        ofVec3f ray = ofVec3f(0,0,0) - rightHand;
+        ofDrawArrow(rightHand, HAND_RAY_PROJECTION_ORIGIN);
+
         ofVec3f* inter = intersect(rightHand,ray);
         if (inter){
             ofSpherePrimitive sphere;
-            sphere.setRadius(15);
+            sphere.setRadius(10);
             sphere.setPosition(*inter);
             sphere.draw();
             delete inter;
@@ -243,7 +253,7 @@ void InteractionBehaviour::draw() {
     glPushMatrix();
     // draw debug (ie., image, depth, skeleton)
     // ofTranslate(0,0,-200);
-    // kinectSessionManager.drawDebug();
+    kinectSessionManager.drawDebug();
     glPopMatrix();
 
     // for(int i = 0; i < MAX_USERS; i++){
@@ -317,21 +327,22 @@ vector<ofVec3f> InteractionBehaviour::getCurrentSpherePoint(ofCamera* cam){
 
     vector<ofVec3f> result;
 
-    // get number of current users
-    int numUsers = kinectSessionManager.getNumberOfUsers();
-    // iterate through users
-    for (int i = 0; i < numUsers; i++){
-        
-        // get a reference to this user
-        SenderoKinectUser & user = kinectSessionManager.getUser(i);
-        ofVec3f position = user.getScenePosition();
+    for(int i = 0; i < kinectSessionManager.getNumberOfUsers(); i++){
+        SenderoKinectUser& user = kinectSessionManager.getUser(i);
+        user.updateState(ofGetElapsedTimeMillis());
 
-        ofVec3f ray = ofVec3f(0,0,0) - position;
-        ofVec3f* inter = intersect(position, ray);
+        if (user.state == RAISED_HAND){
 
-        if (inter){
-            result.push_back(*inter);
-            delete inter;
+            interactionListener.targetAlpha = 10;
+            interactionState = HAND_INTERACTING;
+
+            ofVec3f rightHand = user.getRightHandScenePosition();
+            ofVec3f ray = HAND_RAY_PROJECTION_ORIGIN - rightHand;
+            ofVec3f* inter = intersect(rightHand,ray);
+            if (inter){
+                result.push_back(*inter);
+                delete inter;
+            }
         }
     }
     return result;

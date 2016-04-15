@@ -34,7 +34,7 @@ void GenericClientManager::setup(){
     
     this->transmitEnabled = true;
     
-    ofSetFrameRate(this->appFps);
+    // ofSetFrameRate(this->appFps);
     this->newFps = this->appFps;
     this->waitForReceiver = 0;
 
