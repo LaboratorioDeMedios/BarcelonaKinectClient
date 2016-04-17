@@ -329,16 +329,21 @@ vector<ofVec3f> InteractionBehaviour::getCurrentSpherePoint(ofCamera* cam){
 
     for(int i = 0; i < kinectSessionManager.getNumberOfUsers(); i++){
         SenderoKinectUser& user = kinectSessionManager.getUser(i);
+        cout << "10" << endl;
+        cout << user.isFound() << endl;
+        cout << "10.5" << endl;
         user.updateState(ofGetElapsedTimeMillis());
-
+        cout << "11" << endl;
         if (user.state == RAISED_HAND){
 
             interactionListener.targetAlpha = 10;
             interactionState = HAND_INTERACTING;
 
             ofVec3f rightHand = user.getRightHandScenePosition();
+            cout << "12" << endl;
             ofVec3f ray = HAND_RAY_PROJECTION_ORIGIN - rightHand;
             ofVec3f* inter = intersect(rightHand,ray);
+            cout << "13" << endl;
             if (inter){
                 result.push_back(*inter);
                 delete inter;

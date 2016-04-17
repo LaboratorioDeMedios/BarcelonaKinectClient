@@ -15,6 +15,7 @@ void KinectSessionManager::start(int maxUsers){
     openNIDevice.setRegister(true);
     openNIDevice.setMirror(true);
     openNIDevice.addUserGenerator();
+    openNIDevice.addImageGenerator();
     // openNIDevice.addGestureGenerator();
     // openNIDevice.addAllGestures();
     openNIDevice.setMaxNumUsers(maxUsers);
@@ -31,6 +32,7 @@ void KinectSessionManager::start(int maxUsers){
 
     // you can alternatively create a 'base' user class
 	SenderoKinectUser user;
+    cout << "=1=1=1=1=1=1=1=1=1= " << user.state << endl;
 	// user.setUseMaskTexture(true);
 	user.setUsePointCloud(true);
 	user.setPointCloudDrawSize(2);
@@ -82,6 +84,7 @@ int KinectSessionManager::getNumberOfUsers(){
 }
 
 SenderoKinectUser& KinectSessionManager::getUser(int index){
+    cout << "antes de castear viste" << endl;
 	return (SenderoKinectUser&) openNIDevice.getTrackedUser(index);
 }
 

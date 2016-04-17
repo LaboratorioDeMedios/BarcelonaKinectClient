@@ -16,32 +16,44 @@ class SenderoKinectUser: public ofxOpenNIUser {
 private:
 	SenderoUserGesture* rightHandGesture;
 public:
-	SenderoKinectUserState state;
+	SenderoKinectUserState state = STANDING;
 
 	SenderoKinectUser(): ofxOpenNIUser() {
-		state = STANDING;
-		rightHandGesture = new RightHandRaiseGesture(this);
+		cout << "====================================================== 1" << endl;	
 	}
 
-	SenderoKinectUser(const SenderoKinectUser& other): ofxOpenNIUser(other) {
-		this->state = other.state;
-		state = STANDING;
-		rightHandGesture = new RightHandRaiseGesture(this);
+	SenderoKinectUser(const SenderoKinectUser& other): ofxOpenNIUser(other) {}
+
+	void initIfNeeded(){
+		static bool firstTime = true;
+		if (firstTime){
+			cout << "Initializing" << endl;
+			firstTime = false;
+			state = STANDING;
+			rightHandGesture = new RightHandRaiseGesture(this);
+		}
 	}
 
 	~SenderoKinectUser(){
-		delete rightHandGesture;
+		// if (rightHandGesture != NULL)
+		// 	delete rightHandGesture;
+		// rightHandGesture = NULL;
 	}
 
 	void updateState(uint64_t t){
+		initIfNeeded();
+		assert(rightHandGesture != NULL);
+
 		cout << state << endl;
 		switch (state){
 		case STANDING:
 			cout << "updating" << endl;
 			rightHandGesture->update(t);
 			if (rightHandGesture->wasRecognized()){
+				cout << "neeeh" << endl;
 				state = RAISED_HAND;
 				rightHandGesture->restart();
+				cout << "neeeh2" << endl;
 			}
 			break;
 		case RAISED_HAND:
@@ -111,6 +123,8 @@ public:
 	// }
 
 	ofVec3f getScenePosition(){
+		initIfNeeded();
+
 		if (getNumJoints() <= USER_POSITION_JOINT){
 			return ofVec3f(0,0,0);
 		}else{
@@ -120,6 +134,8 @@ public:
 	}
 
 	ofVec3f getRightHandScenePosition(){
+		initIfNeeded();
+
 		if (getNumJoints() <= JOINT_RIGHT_HAND){
 			return ofVec3f(0,0,0);
 		}else{

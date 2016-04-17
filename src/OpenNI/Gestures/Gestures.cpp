@@ -2,10 +2,14 @@
 #include "../SceneCalibration.h"
 
 bool AbstractJointRaiseGesture::isTargetJointAvailable(){
+	cout << "isTargetJointAvailable" << endl;
+	assert(getUser() != NULL);
 	return getUser()->getNumJoints() > targetJoint();
 }
 
 ofVec3f AbstractJointRaiseGesture::targetJointScenePosition(){
+	cout << "targetJointScenePosition" << endl;
+	assert(getUser() != NULL);
 	if (!isTargetJointAvailable())
 		return ofVec3f(0,0,0);
 	ofxOpenNIJoint& joint = getUser()->getJoint(targetJoint());
@@ -48,6 +52,7 @@ void AbstractJointRaiseGesture::update(uint64_t t){
 
 	if (gestureTime <= 0){
 		// recognized!
+		cout << "isRaising1 " << isRaising << endl;
 		setGestureRecognized(true);
 		cout << "isRaising " << isRaising << endl;
 		gestureTime = RAISE_HAND_GESTURE_TIME;
@@ -59,6 +64,7 @@ void AbstractJointRaiseGesture::update(uint64_t t){
 }
 
 void AbstractJointRaiseGesture::restart(){
+	cout << "restart " << isRaising << endl;
 	SenderoUserGesture::restart();
 
 	setGestureRecognized(false);
