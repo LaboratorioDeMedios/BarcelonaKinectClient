@@ -5,142 +5,186 @@
 #include "SceneCalibration.h"
 #include "Gestures/Gestures.h"
 
-#define USER_POSITION_JOINT	(JOINT_TORSO)
-
 enum SenderoKinectUserState {
+	UNKNOWN,
 	STANDING,
-	RAISED_HAND,
+	RAISED_LEFT_HAND,
+	RAISED_RIGHT_HAND,
+	RAISED_BOTH_HANDS
 };
 
-class SenderoKinectUser: public ofxOpenNIUser {
+#define USER_POSITION_JOINT	(JOINT_TORSO)
+
+class SenderoKinectUserSession {
 private:
 	SenderoUserGesture* rightHandGesture;
+	SenderoUserGesture* leftHandGesture;
+	SenderoKinectUserState state;
+	int id;
 public:
-	SenderoKinectUserState state = STANDING;
 
-	SenderoKinectUser(): ofxOpenNIUser() {
-		cout << "====================================================== 1" << endl;	
+	SenderoKinectUserState getState() {
+		return state;
 	}
 
-	SenderoKinectUser(const SenderoKinectUser& other): ofxOpenNIUser(other) {}
-
-	void initIfNeeded(){
-		static bool firstTime = true;
-		if (firstTime){
-			cout << "Initializing" << endl;
-			firstTime = false;
-			state = STANDING;
-			rightHandGesture = new RightHandRaiseGesture(this);
-		}
+	SenderoKinectUserSession(int id) {
+		cout << "NEW" << endl;
+		rightHandGesture = new RightHandRaiseGesture();
+		leftHandGesture = new LeftHandRaiseGesture();
+		state = STANDING;
+		this->id = id;
 	}
 
-	~SenderoKinectUser(){
-		// if (rightHandGesture != NULL)
-		// 	delete rightHandGesture;
-		// rightHandGesture = NULL;
+	virtual ~SenderoKinectUserSession(){
+		cout << "DELETE" << endl;
+		delete rightHandGesture;
+		delete leftHandGesture;
 	}
 
-	void updateState(uint64_t t){
-		initIfNeeded();
-		assert(rightHandGesture != NULL);
-
+	void update(uint64_t t, ofxOpenNIUser& user){
 		cout << state << endl;
 		switch (state){
-		case STANDING:
-			cout << "updating" << endl;
-			rightHandGesture->update(t);
-			if (rightHandGesture->wasRecognized()){
-				cout << "neeeh" << endl;
-				state = RAISED_HAND;
-				rightHandGesture->restart();
-				cout << "neeeh2" << endl;
+			case UNKNOWN:
+				state = STANDING;
+				/* fall through */
+			case STANDING:
+				{
+					rightHandGesture->update(t, user);
+					leftHandGesture->update(t, user);
+
+					int gesturesQty = 0;
+					SenderoKinectUserState newState = STANDING;
+					if (leftHandGesture->wasRecognized()){
+						newState = RAISED_LEFT_HAND;
+						gesturesQty++;
+					}
+					if (rightHandGesture->wasRecognized()){
+						newState = RAISED_RIGHT_HAND;
+						gesturesQty++;
+					}
+					if (gesturesQty == 2)
+						newState = RAISED_BOTH_HANDS;
+					if (newState != STANDING){
+						state = newState;
+					}
+				}
+				break;
+			case RAISED_LEFT_HAND:
+				{
+					rightHandGesture->update(t, user);
+					if (rightHandGesture->wasRecognized()){
+						state = RAISED_BOTH_HANDS;
+					}
+				}
+				break;
+			case RAISED_RIGHT_HAND:
+				{
+					leftHandGesture->update(t, user);
+					if (leftHandGesture->wasRecognized()){
+						state = RAISED_BOTH_HANDS;
+					}
+				}
+				break;
+			case RAISED_BOTH_HANDS:
+				break;
+			default:
+				cout << "NI IDEA MAN" << endl;
+				break;
+		}
+	}
+
+	ofVec3f getScenePosition(ofxOpenNIUser& user){
+		if (user.getNumJoints() <= USER_POSITION_JOINT){
+			return ofVec3f(0,0,0);
+		}else{
+			ofxOpenNIJoint& joint = user.getJoint(USER_POSITION_JOINT);
+			return SceneCalibration::kinectToSceneCoordinates(joint.getProjectivePosition());	
+		}
+	}
+
+	ofVec3f getRightHandScenePosition(ofxOpenNIUser& user){
+		if (user.getNumJoints() <= JOINT_RIGHT_HAND){
+			return ofVec3f(0,0,0);
+		}else{
+			ofxOpenNIJoint& joint = user.getJoint(JOINT_RIGHT_HAND);
+			return SceneCalibration::kinectToSceneCoordinates(joint.getProjectivePosition());
+		}	
+	}
+
+	ofVec3f getLeftHandScenePosition(ofxOpenNIUser& user){
+		if (user.getNumJoints() <= JOINT_LEFT_HAND){
+			return ofVec3f(0,0,0);
+		}else{
+			ofxOpenNIJoint& joint = user.getJoint(JOINT_LEFT_HAND);
+			return SceneCalibration::kinectToSceneCoordinates(joint.getProjectivePosition());
+		}	
+	}
+
+	vector<ofVec3f> getActiveJointsScenePositions(ofxOpenNIUser& user){
+		vector<ofVec3f> result;
+		switch (getState()){
+			case RAISED_RIGHT_HAND:
+				result.push_back(getRightHandScenePosition(user));
+				break;
+			case RAISED_LEFT_HAND:
+				result.push_back(getLeftHandScenePosition(user));
+				break;
+			case RAISED_BOTH_HANDS:
+				result.push_back(getLeftHandScenePosition(user));
+				result.push_back(getRightHandScenePosition(user));
+				break;
+			default:
+				break;
+		}
+		return result;
+	}
+
+	bool raisedAtLeastOneHand(){
+		switch(getState()){
+			case RAISED_LEFT_HAND:
+			case RAISED_RIGHT_HAND:
+			case RAISED_BOTH_HANDS:
+				return true;
+			default:
+				return false;
+		}
+	}
+};
+
+class SenderoKinectUsersManager {
+private:
+	map<int, SenderoKinectUserSession*> mapper;
+
+	bool idIsInVector(int id, const vector<int>& v){
+		for(int i = 0; i < v.size(); i++){
+			if (id == v[i])
+				return true;
+		}
+		return false;
+	}
+public:
+	void updateCurrentTrackedStates(const vector<int>& currentIds){
+		// insert new ids
+		for(int i = 0; i < currentIds.size(); i++){
+			int id = currentIds[i];
+			if (mapper.find(id) == mapper.end()){
+				mapper[id] = new SenderoKinectUserSession(id);
 			}
-			break;
-		case RAISED_HAND:
-			break;
+		}
+
+		// remove not current ids
+		map<int, SenderoKinectUserSession*>::iterator it;
+		for (it = mapper.begin(); it != mapper.end(); ++it){
+			int id = it->first;
+			if (!idIsInVector(id, currentIds)){
+				delete it->second;
+				mapper.erase(it);
+			}
 		}
 	}
-
-	// void updateState(uint64_t t){
-	// 	static ofVec3f lastHand = getRightHandScenePosition();
-	// 	static uint64_t lastTime = t;
-	// 	static bool isRaising = false;
-	// 	static int confidence = 0;
-	// 	static int gestureTime = RAISE_HAND_GESTURE_TIME;
-
-	// 	switch (state){
-	// 	case STANDING: 
-	// 		{
-	// 			uint64_t elapsedTime = t - lastTime;
-
-	// 			ofVec3f currentHand = getRightHandScenePosition();
-
-	// 			bool wasRaising = isRaising;
-
-	// 			// cout << currentHand.y - lastHand.y << endl;
-	// 			bool _isRaising = currentHand.y - lastHand.y > 0;
-
-	// 			if (isRaising){
-	// 				if (!_isRaising)
-	// 					confidence++;
-					
-	// 				if (confidence > RAISE_HAND_CONFIDENCE){
-	// 					isRaising = false;
-	// 					confidence = 0;
-	// 				}
-	// 			}else{
-	// 				if (_isRaising)
-	// 					confidence++;
-
-	// 				if (confidence > RAISE_HAND_CONFIDENCE){
-	// 					isRaising = true;
-	// 					confidence = 0;
-	// 				}
-	// 			}
-
-	// 			if (wasRaising && isRaising){
-	// 				gestureTime -= elapsedTime;
-	// 			} else {
-	// 				gestureTime = RAISE_HAND_GESTURE_TIME;
-	// 			}
-
-	// 			if (gestureTime <= 0){
-	// 				// recognized!
-	// 				cout << "isRaising " << isRaising << endl;
-	// 				gestureTime = RAISE_HAND_GESTURE_TIME;
-	// 				isRaising = false;
-	// 				state = RAISED_HAND;
-	// 			}
-
-	// 			lastHand = currentHand;
-	// 			lastTime = t;
-	// 		}
-	// 		break;
-
-	// 	case RAISED_HAND:
-	// 		break;
-	// 	}
-	// }
-
-	ofVec3f getScenePosition(){
-		initIfNeeded();
-
-		if (getNumJoints() <= USER_POSITION_JOINT){
-			return ofVec3f(0,0,0);
-		}else{
-			ofxOpenNIJoint& joint = getJoint(USER_POSITION_JOINT);
-			return SceneCalibration::kinectToSceneCoordinates(joint.getProjectivePosition());	
-		}
-	}
-
-	ofVec3f getRightHandScenePosition(){
-		initIfNeeded();
-
-		if (getNumJoints() <= JOINT_RIGHT_HAND){
-			return ofVec3f(0,0,0);
-		}else{
-			ofxOpenNIJoint& joint = getJoint(JOINT_RIGHT_HAND);
-			return SceneCalibration::kinectToSceneCoordinates(joint.getProjectivePosition());	
-		}
+	SenderoKinectUserSession* getSessionForUser(int id){
+		if (mapper.find(id) != mapper.end())
+			return mapper[id];
+		return NULL;
 	}
 };

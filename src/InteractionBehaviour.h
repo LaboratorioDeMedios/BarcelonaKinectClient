@@ -57,7 +57,7 @@ private:
     CosmicBehaviour interactionListener;
 
 
-    ofSpherePrimitive movingSphere[MAX_USERS];
+    ofSpherePrimitive movingSphere[MAX_USERS*2];
 
     ofVec3f toPolar(ofVec3f xyz);
     ofVec3f toCartesian(ofVec3f rthetaphi);

@@ -1,27 +1,23 @@
 #include "Gestures.h"
 #include "../SceneCalibration.h"
 
-bool AbstractJointRaiseGesture::isTargetJointAvailable(){
-	cout << "isTargetJointAvailable" << endl;
-	assert(getUser() != NULL);
-	return getUser()->getNumJoints() > targetJoint();
+bool AbstractJointRaiseGesture::isTargetJointAvailable(ofxOpenNIUser& user){
+	return user.getNumJoints() > targetJoint();
 }
 
-ofVec3f AbstractJointRaiseGesture::targetJointScenePosition(){
-	cout << "targetJointScenePosition" << endl;
-	assert(getUser() != NULL);
-	if (!isTargetJointAvailable())
+ofVec3f AbstractJointRaiseGesture::targetJointScenePosition(ofxOpenNIUser& user){
+	if (!isTargetJointAvailable(user))
 		return ofVec3f(0,0,0);
-	ofxOpenNIJoint& joint = getUser()->getJoint(targetJoint());
+	ofxOpenNIJoint& joint = user.getJoint(targetJoint());
 	return SceneCalibration::kinectToSceneCoordinates(joint.getProjectivePosition());
 }
 
-void AbstractJointRaiseGesture::update(uint64_t t){
+void AbstractJointRaiseGesture::update(uint64_t t, ofxOpenNIUser& user){
+
 	static uint64_t lastTime = t;
 	uint64_t elapsedTime = t - lastTime;
 
-	ofVec3f currentHand = targetJointScenePosition();
-	cout << currentHand << endl;
+	ofVec3f currentHand = targetJointScenePosition(user);
 
 	bool wasRaising = isRaising;
 	bool _isRaising = currentHand.y - lastHand.y > 0;
@@ -52,9 +48,7 @@ void AbstractJointRaiseGesture::update(uint64_t t){
 
 	if (gestureTime <= 0){
 		// recognized!
-		cout << "isRaising1 " << isRaising << endl;
 		setGestureRecognized(true);
-		cout << "isRaising " << isRaising << endl;
 		gestureTime = RAISE_HAND_GESTURE_TIME;
 		isRaising = false;
 	}
@@ -64,7 +58,6 @@ void AbstractJointRaiseGesture::update(uint64_t t){
 }
 
 void AbstractJointRaiseGesture::restart(){
-	cout << "restart " << isRaising << endl;
 	SenderoUserGesture::restart();
 
 	setGestureRecognized(false);

@@ -133,8 +133,8 @@ void InteractionBehaviour::customSetup (map<int,Pixel*>* pixels, vector<Pixel*>*
 void InteractionBehaviour::update(ofCamera* cam) {
 
     uint64_t t = ofGetElapsedTimeMillis();
-
-    kinectSessionManager.update();
+    // cout << "before kinect update" << endl;
+    kinectSessionManager.update(t);
 
     int diff = abs(interactionListener.targetAlpha - interactionListener.color.a);
     if (interactionListener.targetAlpha > interactionListener.color.a)
@@ -173,7 +173,7 @@ void InteractionBehaviour::update(ofCamera* cam) {
     // cout << "toCartesian(interactionListener.position) " << toCartesian(interactionListener.position) << endl;
 
 
-    ofColor colors[2] = {ofColor(255,0,255),ofColor(255,255,0)};
+    ofColor colors[MAX_USERS*2] = {ofColor(255,0,255),ofColor(255,255,0)};
 
     static uint64_t last = ofGetElapsedTimeMillis();
     uint64_t now = ofGetElapsedTimeMillis();
@@ -184,6 +184,7 @@ void InteractionBehaviour::update(ofCamera* cam) {
     }
 
     vector<ofVec3f> touchPositions = getCurrentSpherePoint(cam);
+    // cout << "qwefas" << endl;
     
     // if ((touchPosition) /*&& (touchPosition->distance(movingPointOrigin) > 0.0001)*/){
         
@@ -215,6 +216,7 @@ void InteractionBehaviour::update(ofCamera* cam) {
         // draw hand interactions
 
         if (interactionState == HAND_INTERACTING){
+            // cout << "palalala" << endl;
             for(int h = 0; h < touchPositions.size(); h++){
                 movingSphere[h].setPosition(touchPositions[h]);
                 float dist = touchPositions[h].distance(pxPosition);
@@ -226,26 +228,26 @@ void InteractionBehaviour::update(ofCamera* cam) {
             }
         }
     }
+
+    // cout << "fin of update" << endl;
 }
 
 void InteractionBehaviour::draw() {
 
     ofSetColor(255, 255, 255);
-
+    // cout << "on draw" << endl;
     for(int i = 0; i < kinectSessionManager.getNumberOfUsers(); i++){
-        SenderoKinectUser& user = kinectSessionManager.getUser(i);
-        ofVec3f rightHand = user.getRightHandScenePosition();
-        ofVec3f ray = HAND_RAY_PROJECTION_ORIGIN - rightHand;
-
-        ofDrawArrow(rightHand, HAND_RAY_PROJECTION_ORIGIN);
-
-        ofVec3f* inter = intersect(rightHand,ray);
-        if (inter){
+        ofxOpenNIUser& user = kinectSessionManager.getUser(i);
+        SenderoKinectUserSession* session = kinectSessionManager.getSessionForUser(i);
+        vector<ofVec3f> handPositions = session->getActiveJointsScenePositions(user);
+        for(int h =0; h < handPositions.size(); h++){
+            ofVec3f hand = handPositions[h];
+            ofVec3f ray = HAND_RAY_PROJECTION_ORIGIN - hand;
+            ofDrawArrow(hand, HAND_RAY_PROJECTION_ORIGIN);
             ofSpherePrimitive sphere;
             sphere.setRadius(10);
-            sphere.setPosition(*inter);
+            sphere.setPosition(hand);
             sphere.draw();
-            delete inter;
         }
     }
 
@@ -317,8 +319,6 @@ ofVec3f InteractionBehaviour::toCartesian(ofVec3f v){
 ofVec3f InteractionBehaviour::randomizeSpherePoint(ofVec3f p){
 
     ofVec3f polar = toPolar(p);
-    // theta(polar) += gaussian();
-    // phi(polar) += gaussian();
 
     return toCartesian(polar);
 }
@@ -328,25 +328,22 @@ vector<ofVec3f> InteractionBehaviour::getCurrentSpherePoint(ofCamera* cam){
     vector<ofVec3f> result;
 
     for(int i = 0; i < kinectSessionManager.getNumberOfUsers(); i++){
-        SenderoKinectUser& user = kinectSessionManager.getUser(i);
-        cout << "10" << endl;
-        cout << user.isFound() << endl;
-        cout << "10.5" << endl;
-        user.updateState(ofGetElapsedTimeMillis());
-        cout << "11" << endl;
-        if (user.state == RAISED_HAND){
+        ofxOpenNIUser& user = kinectSessionManager.getUser(i);
+        SenderoKinectUserSession* session = kinectSessionManager.getSessionForUser(i);
+        if (session->raisedAtLeastOneHand()){
 
             interactionListener.targetAlpha = 10;
             interactionState = HAND_INTERACTING;
 
-            ofVec3f rightHand = user.getRightHandScenePosition();
-            cout << "12" << endl;
-            ofVec3f ray = HAND_RAY_PROJECTION_ORIGIN - rightHand;
-            ofVec3f* inter = intersect(rightHand,ray);
-            cout << "13" << endl;
-            if (inter){
-                result.push_back(*inter);
-                delete inter;
+            vector<ofVec3f> handPositions = session->getActiveJointsScenePositions(user);
+            for(int h = 0; h < handPositions.size(); h++){
+                ofVec3f hand = handPositions[h];
+                ofVec3f ray = HAND_RAY_PROJECTION_ORIGIN - hand;
+                ofVec3f* inter = intersect(hand,ray);
+                if (inter){
+                    result.push_back(*inter);
+                    delete inter;
+                }
             }
         }
     }

@@ -2,38 +2,43 @@
 
 #include "ofMain.h"
 #include "ofxOpenNI.h"
+#include <string.h>
 
-class SenderoKinectUser;
+class KinectSessionManager;
 
 /* gesture interface */
 class SenderoUserGesture {
 private:
-	SenderoKinectUser* user;
 	bool gestureRecognized;
+protected:
+	string name;
 public:
-	SenderoUserGesture(SenderoKinectUser* user){
-		this->user = user;
+	SenderoUserGesture(){
 		gestureRecognized = false;
+		name = "UNKNOWN NAME";
+	}
+
+	string getName(){
+		return ">> [GESTURE] Sendero Gesture: " + name;
 	}
 	virtual bool wasRecognized(){
 		return gestureRecognized;
 	}
 	virtual void setGestureRecognized(bool isRecognized){
+		if (isRecognized)
+			cout << getName() << endl;
 		gestureRecognized = isRecognized;
-	}
-	virtual SenderoKinectUser* getUser(){
-		cout << "get user!" << endl;
-		return user;
 	}
 	virtual void restart(){
 		gestureRecognized = false;
 	}
-	virtual void update(uint64_t t) = 0;
+	virtual void update(uint64_t t, ofxOpenNIUser& user) = 0;
+	virtual ~SenderoUserGesture(){}
 };
 
 
 #define RAISE_HAND_CONFIDENCE (2)
-#define RAISE_HAND_GESTURE_TIME (600)
+#define RAISE_HAND_GESTURE_TIME (500)
 
 class AbstractJointRaiseGesture: public SenderoUserGesture {
 private:
@@ -43,20 +48,23 @@ private:
 	int confidence;
 	int gestureTime;
 public:
-	AbstractJointRaiseGesture(SenderoKinectUser* user): SenderoUserGesture(user) {
+	AbstractJointRaiseGesture(): SenderoUserGesture() {
 		restart();
 	}
-	ofVec3f targetJointScenePosition();
-	bool isTargetJointAvailable();
-	virtual void update(uint64_t t);
+	ofVec3f targetJointScenePosition(ofxOpenNIUser& user);
+	bool isTargetJointAvailable(ofxOpenNIUser& user);
+	virtual void update(uint64_t t, ofxOpenNIUser& user);
 	virtual void restart();
 
 	virtual Joint targetJoint() = 0;
+	virtual ~AbstractJointRaiseGesture(){}
 };
 
 class RightHandRaiseGesture: public AbstractJointRaiseGesture {
 public:
-	RightHandRaiseGesture(SenderoKinectUser* user): AbstractJointRaiseGesture(user) {}
+	RightHandRaiseGesture(): AbstractJointRaiseGesture() {
+		name = "RightHandRaiseGesture";
+	}
 	Joint targetJoint(){
 		return JOINT_RIGHT_HAND;
 	}
@@ -64,10 +72,12 @@ public:
 
 class LeftHandRaiseGesture: public AbstractJointRaiseGesture {
 public:
-	LeftHandRaiseGesture(SenderoKinectUser* user): AbstractJointRaiseGesture(user) {}
+	LeftHandRaiseGesture(): AbstractJointRaiseGesture() {
+		name = "LeftHandRaiseGesture";
+	}
 	Joint targetJoint(){
 		return JOINT_LEFT_HAND;
 	}
 };
 
-#include "../SenderoKinectUser.h"
+#include "KinectSessionManager.h"

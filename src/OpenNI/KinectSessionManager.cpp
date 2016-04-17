@@ -1,7 +1,15 @@
 #include "KinectSessionManager.h"
 
-KinectSessionManager::KinectSessionManager(){
+KinectSessionManager* KinectSessionManager::instance = NULL;
 
+KinectSessionManager* KinectSessionManager::sharedInstance(){
+    if (instance == NULL)
+        instance = new KinectSessionManager();
+    return instance;
+}
+
+KinectSessionManager::KinectSessionManager(){
+    instance = this;
 }
 
 void KinectSessionManager::start(int maxUsers){
@@ -10,7 +18,7 @@ void KinectSessionManager::start(int maxUsers){
 	ofAddListener(openNIDevice.userEvent, this, &KinectSessionManager::userEvent);
     ofAddListener(openNIDevice.gestureEvent, this, &KinectSessionManager::gestureEvent);
 
-    openNIDevice.setup();
+    openNIDevice.setup(false);
     openNIDevice.addDepthGenerator();
     openNIDevice.setRegister(true);
     openNIDevice.setMirror(true);
@@ -26,17 +34,16 @@ void KinectSessionManager::start(int maxUsers){
     openNIDevice.setUseMaskTextureAllUsers(true); // this turns on mask pixels internally AND creates mask textures efficiently
     openNIDevice.setUsePointCloudsAllUsers(true);
     openNIDevice.setPointCloudDrawSizeAllUsers(2); // size of each 'point' in the point cloud
-    openNIDevice.setPointCloudResolutionAllUsers(50); // resolution of the mesh created for the point cloud eg., this will use every second depth pixel      
+    // openNIDevice.setPointCloudResolutionAllUsers(50); // resolution of the mesh created for the point cloud eg., this will use every second depth pixel      
     verdana.loadFont(ofToDataPath("verdana.ttf"), 24);
     
 
     // you can alternatively create a 'base' user class
-	SenderoKinectUser user;
-    cout << "=1=1=1=1=1=1=1=1=1= " << user.state << endl;
+	ofxOpenNIUser user;
 	// user.setUseMaskTexture(true);
 	user.setUsePointCloud(true);
 	user.setPointCloudDrawSize(2);
-	user.setPointCloudResolution(50);
+	user.setPointCloudResolution(20);
     // user.setUseAutoCalibration(false);
     // user.setForceResetTimeout(300);
     // user.setConfidenceThreshold(0.1);
@@ -45,8 +52,21 @@ void KinectSessionManager::start(int maxUsers){
     openNIDevice.start();
 }
 
-void KinectSessionManager::update(){
+void KinectSessionManager::update(uint64_t t){
 	openNIDevice.update();
+    vector<int> currentIds;
+    for(int i = 0; i < getNumberOfUsers(); i++){
+        ofxOpenNIUser& user = getUser(i);
+        currentIds.push_back(user.getXnID());
+    }
+    usersManager.updateCurrentTrackedStates(currentIds);
+
+    for(int i = 0; i < getNumberOfUsers(); i++){
+        ofxOpenNIUser& user = getUser(i);
+        SenderoKinectUserSession* session = usersManager.getSessionForUser(user.getXnID());
+        session->update(t, user);
+    }
+
 }
 
 void KinectSessionManager::drawDebug(){
@@ -83,9 +103,25 @@ int KinectSessionManager::getNumberOfUsers(){
 	return openNIDevice.getNumTrackedUsers();
 }
 
-SenderoKinectUser& KinectSessionManager::getUser(int index){
-    cout << "antes de castear viste" << endl;
-	return (SenderoKinectUser&) openNIDevice.getTrackedUser(index);
+SenderoKinectUserSession* KinectSessionManager::getSessionForUser(int index){
+    ofxOpenNIUser& user = openNIDevice.getTrackedUser(index);
+    return usersManager.getSessionForUser(user.getXnID());
+}
+
+ofxOpenNIUser& KinectSessionManager::getUser(int index){
+	return openNIDevice.getTrackedUser(index);
+}
+
+ofxOpenNIUser& KinectSessionManager::getUserByID(int id){
+    bool found = false;
+    for(int i = 0; i < getNumberOfUsers(); i++){
+        ofxOpenNIUser& user = getUser(i);
+        if (user.getXnID() == id){
+            found = true;
+            return user;
+        }
+    }
+    assert(found);
 }
 
 void KinectSessionManager::userEvent(ofxOpenNIUserEvent & event){
