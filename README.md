@@ -3,4 +3,4 @@
 Kinect Client for Barcelona
 ===========================
 
-[Sendero Client](https://github.com/Sendero-Project/SenderoGenericClient) that lightens Barcelona artwork using a Microsoft Kinect.
+[Sendero Client](https://github.com/LaboratorioDeMedios/SenderoGenericClient_Linux) that lightens Barcelona artwork using a Microsoft Kinect.
